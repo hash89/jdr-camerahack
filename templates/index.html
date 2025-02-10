@@ -1,0 +1,25 @@
+{% extends "layout.html" %}
+{% block content %}
+    <!-- Bouton "Débuter le piratage" -->
+    <a href="{{ url_for('camera', camera_id=cameras[0].id) }}">
+        <button>Débuter le Piratage</button>
+    </a>
+    <h1>Flux Vidéo des Caméras</h1>
+    <div class="camera-list" style="display: flex; flex-wrap: wrap; justify-content: center;">
+        {% for camera in cameras %}
+            <div class="camera-item" style="margin: 10px; text-align: center;">
+                <h2>{{ camera.name }}</h2>
+                {% if camera.id in unlocked_cameras %}
+                    <a href="{{ url_for('camera', camera_id=camera.id) }}" class="camera-link">
+                        <img src="{{ url_for('static', filename=camera.image_filename) }}" alt="{{ camera.name }}" width="200">
+                        <p>Accès Débloqué</p>
+                    </a>
+                {% else %}
+                    <img src="{{ url_for('static', filename='gris.jpg') }}" alt="Accès Verrouillé" width="200">
+                    <p class="error">Accès Verrouillé</p>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+    <a href="{{ url_for('reset') }}"><button class="inverse-button">Réinitialiser les Caméras</button></a>
+{% endblock %}

@@ -1,0 +1,180 @@
+{% extends "layout.html" %}
+{% block content %}
+    <h1>{{ camera.name }}</h1>
+    <div id="camera-feed">
+        <img id="camera-image" src="{{ url_for('static', filename=camera.image_filename) }}" alt="Flux de {{ camera.name }}">
+        {% if not is_unlocked %}
+            <div class="noise-overlay"></div> <!-- Affiche l'effet bruit seulement si verrouillé -->
+			<div id="locked-indicator">Caméra Verrouillée</div>
+		{% else %}
+			<div id="indicator">Caméra en ligne</div>
+		{% endif %}
+	</div>
+	{% if not is_unlocked %}
+		<button id="check-location-btn">Vérifier la Localisation</button>
+	{% endif %}
+	<div id="loader" style="display: none;">
+		<!-- Vous pouvez ajouter une animation de chargement ici -->
+		Chargement...
+	</div>
+	<div id="result-message"></div>
+	{% if not is_unlocked %}
+		<div id="camera-password" style="display: none;">
+			<p>Indice : <strong id="password-text"></strong></p>
+		</div>
+	{% else %}
+		<div id="camera-password">
+			<p>Indice : <strong>{{ camera_password }}</strong></p>
+		</div>
+	{% endif %}
+	{% if is_unlocked %}
+		{% if current_index < cameras|length - 1 %}
+			{% set next_camera = cameras[current_index + 1] %}
+			<a href="{{ url_for('camera', camera_id=next_camera.id) }}">
+				<button class="inverse-button">Passer à la caméra suivante ></button>
+			</a>
+		{% else %}
+			<p>Toutes les caméras ont été piratées !</p>
+		{% endif %}
+	{% endif %}
+	<!-- Bouton "Passer à la Caméra Suivante" initialement caché pour être affiché via JavaScript -->
+	<a href="{{ url_for('camera', camera_id=cameras[current_index + 1].id if current_index + 1 < cameras|length else '#') }}" id="next-camera-link" style="display: none;">
+		<button class="inverse-button" id="next-camera-btn">Passer à la caméra suivante ></button>
+	</a>
+	<!-- Bouton "Retour à la Liste des Caméras" affiché une seule fois en dehors de toute condition -->
+	<div>
+		<a href="{{ url_for('index') }}">
+			<button class="inverse-button">< Retour à la liste des caméras</button>
+		</a>
+	</div>
+	<!-- Optionnel : Effets sonores -->
+	<!-- <audio id="camera-sound" src="{{ url_for('static', filename='camera_sound.mp3') }}" loop autoplay></audio> -->
+	<script>
+		{% if not is_unlocked %}
+			// Élément du DOM pour le bouton, le message et le loader
+			const checkLocationBtn = document.getElementById('check-location-btn');
+			const resultMessage = document.getElementById('result-message');
+			const loader = document.getElementById('loader');
+			const passwordText = document.getElementById('password-text');
+			const cameraPasswordDiv = document.getElementById('camera-password');
+			const nextCameraLink = document.getElementById('next-camera-link');
+		   
+			// Récupérer l'ID de la caméra depuis le contexte de la page
+			const cameraId = "{{ camera.id }}";
+		   
+			// Récupérer l'URL de la caméra suivante
+			const nextCameraUrl = "{{ url_for('camera', camera_id=cameras[current_index + 1].id) if current_index + 1 < cameras|length else '#' }}";
+		   
+			// Fonction pour afficher les résultats
+			function displayResult(isWithinZone, message, password) {
+				if (isWithinZone) {
+					resultMessage.textContent = message;
+					resultMessage.className = 'success';
+					// Afficher le mot de passe dans la page
+					passwordText.textContent = password;
+					cameraPasswordDiv.style.display = 'block';
+					// Afficher le bouton "Passer à la Caméra Suivante" si une caméra suivante existe
+					if (nextCameraUrl !== '#') {
+						nextCameraLink.href = nextCameraUrl;
+						nextCameraLink.style.display = 'inline-block';
+					} else {
+						// Toutes les caméras ont été piratées
+						const allHackedMessage = document.createElement('p');
+						allHackedMessage.textContent = 'Toutes les caméras ont été piratées !';
+						cameraPasswordDiv.parentNode.insertBefore(allHackedMessage, nextCameraLink);
+					}
+				} else {
+					resultMessage.textContent = message;
+					resultMessage.className = 'error';
+				}
+				resultMessage.style.display = 'block';
+			}
+
+			// Fonction pour masquer le résultat et le loader
+			function resetUI() {
+				resultMessage.style.display = 'none';
+				resultMessage.textContent = '';
+				resultMessage.className = '';
+				cameraPasswordDiv.style.display = 'none';
+				passwordText.textContent = '';
+				// Masquer le bouton "Passer à la Caméra Suivante"
+				nextCameraLink.style.display = 'none';
+				// Supprimer le message de fin si présent
+				const existingMessage = document.querySelector('p');
+				if (existingMessage && existingMessage.textContent.includes('Toutes les caméras ont été piratées')) {
+					existingMessage.remove();
+				}
+			}
+		   
+			// Fonction pour envoyer les données au backend
+			function sendLocationToBackend(lat, lon) {
+				fetch('/verify_location', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify({
+						latitude: lat,
+						longitude: lon,
+						camera_id: cameraId
+					}),
+				})
+				.then(response => response.json())
+				.then(data => {
+					loader.style.display = 'none';
+					if (data.success) {
+						displayResult(true, data.message, data.password);
+					} else {
+						displayResult(false, data.message, null);
+					}
+				})
+				.catch((error) => {
+					loader.style.display = 'none';
+					console.error('Erreur:', error);
+					alert('Une erreur est survenue lors de la vérification de la localisation.');
+				});
+			}
+		   
+			// Gestionnaire d'événement pour le bouton
+			checkLocationBtn.addEventListener('click', () => {
+				// Réinitialiser l'interface utilisateur
+				resetUI();
+				// Afficher le loader
+				loader.style.display = 'block';
+				// Vérifier si le navigateur supporte la géolocalisation
+				if (!navigator.geolocation) {
+					alert('La géolocalisation n\'est pas supportée par votre navigateur.');
+					loader.style.display = 'none'; // Cacher le loader
+					return;
+				}
+				// Demander la position actuelle
+				navigator.geolocation.getCurrentPosition(
+					(position) => {
+						const userLat = position.coords.latitude;
+						const userLon = position.coords.longitude;
+						// Envoyer les coordonnées au backend
+						sendLocationToBackend(userLat, userLon);
+					},
+					(error) => {
+						// Cacher le loader en cas d'erreur
+						loader.style.display = 'none';
+						switch(error.code) {
+							case error.PERMISSION_DENIED:
+								alert("L'utilisateur a refusé la demande de géolocalisation.");
+								break;
+							case error.POSITION_UNAVAILABLE:
+								alert("Les informations de localisation ne sont pas disponibles.");
+								break;
+							case error.TIMEOUT:
+								alert("La demande de géolocalisation a expiré.");
+								break;
+							default:
+								alert("Une erreur inconnue est survenue.");
+								break;
+						}
+					}
+				);
+			});
+		{% endif %}
+	</script>
+{% endblock %}
