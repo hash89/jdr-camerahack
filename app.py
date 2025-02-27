@@ -159,4 +159,4 @@ def force_unlock(camera_id):
     return f"Caméra {camera_id} débloquée. <a href='{url_for('index')}'>Retour à l'accueil</a>"
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5001, debug=True)

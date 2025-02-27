@@ -27,6 +27,11 @@
 			<p>Indice : <strong>{{ camera_password }}</strong></p>
 		</div>
 	{% endif %}
+	<div>
+		<!-- Bouton "Retour à la Liste des Caméras" affiché une seule fois en dehors de toute condition -->
+		<a href="{{ url_for('index') }}">
+			<button class="inverse-button">< Retour à la liste des caméras</button>
+		</a>
 	{% if is_unlocked %}
 		{% if current_index < cameras|length - 1 %}
 			{% set next_camera = cameras[current_index + 1] %}
@@ -37,14 +42,9 @@
 			<p>Toutes les caméras ont été piratées !</p>
 		{% endif %}
 	{% endif %}
-	<!-- Bouton "Passer à la Caméra Suivante" initialement caché pour être affiché via JavaScript -->
-	<a href="{{ url_for('camera', camera_id=cameras[current_index + 1].id if current_index + 1 < cameras|length else '#') }}" id="next-camera-link" style="display: none;">
-		<button class="inverse-button" id="next-camera-btn">Passer à la caméra suivante ></button>
-	</a>
-	<!-- Bouton "Retour à la Liste des Caméras" affiché une seule fois en dehors de toute condition -->
-	<div>
-		<a href="{{ url_for('index') }}">
-			<button class="inverse-button">< Retour à la liste des caméras</button>
+		<!-- Bouton "Passer à la Caméra Suivante" initialement caché pour être affiché via JavaScript -->
+		<a href="{{ url_for('camera', camera_id=cameras[current_index + 1].id if current_index + 1 < cameras|length else '#') }}" id="next-camera-link" style="display: none;">
+			<button class="inverse-button" id="next-camera-btn">Passer à la caméra suivante ></button>
 		</a>
 	</div>
 	<!-- Optionnel : Effets sonores -->

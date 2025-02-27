@@ -1,10 +1,10 @@
 {% extends "layout.html" %}
 {% block content %}
+    <h1>Cam H4ck</h1>
     <!-- Bouton "Débuter le piratage" -->
     <a href="{{ url_for('camera', camera_id=cameras[0].id) }}">
         <button>Débuter le Piratage</button>
     </a>
-    <h1>Flux Vidéo des Caméras</h1>
     <div class="camera-list" style="display: flex; flex-wrap: wrap; justify-content: center;">
         {% for camera in cameras %}
             <div class="camera-item" style="margin: 10px; text-align: center;">
